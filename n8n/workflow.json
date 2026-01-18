@@ -1,0 +1,183 @@
+{
+  "name": "TradingView to Airtable ETF Prices",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 4
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "base": {
+          "__rl": true,
+          "value": "appKm59Y0VssE73u7",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "ETF",
+          "mode": "name"
+        },
+        "returnAll": true
+      },
+      "id": "airtable-get-etfs",
+      "name": "Get ETFs from Airtable",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [220, 0],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "Airtable Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "loop-etfs",
+      "name": "Loop Over ETFs",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://localhost:3456/price?symbol=LSE:{{ $json.fields.Ticker }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "fetch-price",
+      "name": "Fetch Price from TradingView",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appKm59Y0VssE73u7",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "ETF",
+          "mode": "name"
+        },
+        "id": "={{ $('Loop Over ETFs').item.json.id }}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Price (TradingView)": "={{ $json.price }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "airtable-update",
+      "name": "Update Airtable Price",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [880, 0],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "Airtable Token"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "loop-done",
+      "name": "Loop Done",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1100, 100]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get ETFs from Airtable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get ETFs from Airtable": {
+      "main": [
+        [
+          {
+            "node": "Loop Over ETFs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over ETFs": {
+      "main": [
+        [
+          {
+            "node": "Fetch Price from TradingView",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Price from TradingView": {
+      "main": [
+        [
+          {
+            "node": "Update Airtable Price",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Airtable Price": {
+      "main": [
+        [
+          {
+            "node": "Loop Over ETFs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

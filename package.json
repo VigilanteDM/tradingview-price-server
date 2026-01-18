@@ -1,0 +1,19 @@
+{
+  "name": "tradingview-price-server",
+  "version": "1.0.0",
+  "main": "scripts/price-server.js",
+  "scripts": {
+    "start": "node scripts/price-server.js",
+    "test": "node scripts/test-lse-etf.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["tradingview", "etf", "prices"],
+  "author": "",
+  "license": "ISC",
+  "description": "HTTP server that fetches ETF prices from TradingView",
+  "dependencies": {
+    "@mathieuc/tradingview": "^3.5.2"
+  }
+}

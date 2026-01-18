@@ -1,0 +1,23 @@
+{
+  "etfs": [
+    { "ticker": "JGST", "exchange": "LSE", "name": "JPMorgan GBP Ultrashort Income Active ETF" },
+    { "ticker": "GBSP", "exchange": "LSE", "name": "WisdomTree Physical Gold - GBP Daily Hedged" },
+    { "ticker": "ISPY", "exchange": "LSE", "name": "L&G Cyber Security UCITS ETF" },
+    { "ticker": "SMGB", "exchange": "LSE", "name": "VanEck Semiconductor UCITS ETF" },
+    { "ticker": "INRG", "exchange": "LSE", "name": "iShares Global Clean Energy UCITS ETF" },
+    { "ticker": "BTEK", "exchange": "LSE", "name": "BlackRock Future Tech UCITS ETF" },
+    { "ticker": "IGWD", "exchange": "LSE", "name": "iShares MSCI World GBP Hedged UCITS ETF" },
+    { "ticker": "GSPX", "exchange": "LSE", "name": "iShares Core S&P 500 UCITS ETF GBP Hedged" },
+    { "ticker": "VPN", "exchange": "LSE", "name": "Global X Data Center REITs & Digital Infrastructure UCITS ETF" },
+    { "ticker": "CSH2", "exchange": "LSE", "name": "Amundi Smart Overnight Return UCITS ETF" },
+    { "ticker": "RBTX", "exchange": "LSE", "name": "iShares Automation & Robotics UCITS ETF" },
+    { "ticker": "HTWG", "exchange": "LSE", "name": "L&G Hydrogen Economy UCITS ETF" },
+    { "ticker": "XAIX", "exchange": "LSE", "name": "Xtrackers Artificial Intelligence & Big Data UCITS ETF" },
+    { "ticker": "IB1T", "exchange": "LSE", "name": "iShares Bitcoin ETP" },
+    { "ticker": "XSTR", "exchange": "LSE", "name": "Xtrackers II GBP Overnight Rate Swap UCITS ETF" },
+    { "ticker": "EQGB", "exchange": "LSE", "name": "Invesco Nasdaq-100 UCITS ETF GBP Hedged" },
+    { "ticker": "JEDG", "exchange": "LSE", "name": "VanEck Space Innovators UCITS ETF" },
+    { "ticker": "QNTG", "exchange": "LSE", "name": "VanEck Computing UCITS ETF" },
+    { "ticker": "FSKY", "exchange": "LSE", "name": "First Trust Cloud Computing UCITS ETF" }
+  ]
+}
