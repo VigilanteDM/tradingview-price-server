@@ -18,6 +18,7 @@ async function getPrice(symbol) {
   return new Promise((resolve, reject) => {
     const client = new TradingView.Client();
     const chart = new client.Session.Chart();
+    let symbolInfo = {};
 
     const timeout = setTimeout(() => {
       client.end();
@@ -25,6 +26,10 @@ async function getPrice(symbol) {
     }, 15000);
 
     chart.setMarket(symbol, { timeframe: 'D' });
+
+    chart.onSymbolLoaded(() => {
+      symbolInfo = chart.infos || {};
+    });
 
     chart.onError((...err) => {
       clearTimeout(timeout);
@@ -39,7 +44,9 @@ async function getPrice(symbol) {
       const result = {
         symbol: symbol,
         price: chart.periods[0].close,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        description: symbolInfo.description || null,
+        currency_code: symbolInfo.currency_code || null
       };
       chart.delete();
       client.end();
@@ -64,12 +71,16 @@ async function updateAllPrices() {
     const tvSymbol = `${etf.exchange}:${etf.ticker}`;
     try {
       const priceData = await getPrice(tvSymbol);
+      const updateFields = {
+        current_price: priceData.price,
+        price_updated_at: priceData.timestamp
+      };
+      if (priceData.description) updateFields.description = priceData.description;
+      if (priceData.currency_code) updateFields.currency_code = priceData.currency_code;
+
       const { error: updateError } = await supabase
         .from('etfs')
-        .update({
-          current_price: priceData.price,
-          price_updated_at: priceData.timestamp
-        })
+        .update(updateFields)
         .eq('id', etf.id);
 
       if (updateError) {
@@ -77,7 +88,7 @@ async function updateAllPrices() {
         console.error(`DB update failed for ${etf.ticker}: ${updateError.message}`);
       } else {
         results.updated++;
-        console.log(`Updated ${etf.ticker}: ${priceData.price}`);
+        console.log(`Updated ${etf.ticker}: ${priceData.price} (${priceData.currency_code})`);
       }
     } catch (err) {
       results.errors.push({ ticker: etf.ticker, error: err.message });
