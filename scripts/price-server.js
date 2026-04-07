@@ -19,16 +19,35 @@ async function getPrice(symbol) {
     const client = new TradingView.Client();
     const chart = new client.Session.Chart();
     let symbolInfo = {};
+    let priceData = null;
+    let symbolLoaded = false;
 
     const timeout = setTimeout(() => {
       client.end();
       reject(new Error('Timeout'));
     }, 15000);
 
+    function tryResolve() {
+      if (!priceData || !symbolLoaded) return;
+      clearTimeout(timeout);
+      const result = {
+        symbol: symbol,
+        price: priceData.close,
+        timestamp: new Date().toISOString(),
+        description: symbolInfo.description || null,
+        currency_code: symbolInfo.currency_code || null
+      };
+      chart.delete();
+      client.end();
+      resolve(result);
+    }
+
     chart.setMarket(symbol, { timeframe: 'D' });
 
     chart.onSymbolLoaded(() => {
       symbolInfo = chart.infos || {};
+      symbolLoaded = true;
+      tryResolve();
     });
 
     chart.onError((...err) => {
@@ -39,18 +58,8 @@ async function getPrice(symbol) {
 
     chart.onUpdate(() => {
       if (!chart.periods[0]) return;
-
-      clearTimeout(timeout);
-      const result = {
-        symbol: symbol,
-        price: chart.periods[0].close,
-        timestamp: new Date().toISOString(),
-        description: symbolInfo.description || null,
-        currency_code: symbolInfo.currency_code || null
-      };
-      chart.delete();
-      client.end();
-      resolve(result);
+      priceData = chart.periods[0];
+      tryResolve();
     });
   });
 }
@@ -88,7 +97,7 @@ async function updateAllPrices() {
         console.error(`DB update failed for ${etf.ticker}: ${updateError.message}`);
       } else {
         results.updated++;
-        console.log(`Updated ${etf.ticker}: ${priceData.price} (${priceData.currency_code})`);
+        console.log(`Updated ${etf.ticker}: ${priceData.price} | ${priceData.description} | ${priceData.currency_code}`);
       }
     } catch (err) {
       results.errors.push({ ticker: etf.ticker, error: err.message });
