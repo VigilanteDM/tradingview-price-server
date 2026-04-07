@@ -1,6 +1,6 @@
 {
   "name": "tradingview-price-server",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "main": "scripts/price-server.js",
   "scripts": {
     "start": "node scripts/price-server.js",
@@ -9,11 +9,12 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "keywords": ["tradingview", "etf", "prices"],
+  "keywords": ["tradingview", "etf", "prices", "supabase"],
   "author": "",
   "license": "ISC",
-  "description": "HTTP server that fetches ETF prices from TradingView",
+  "description": "HTTP server that fetches ETF prices from TradingView and stores them in Supabase",
   "dependencies": {
-    "@mathieuc/tradingview": "^3.5.2"
+    "@mathieuc/tradingview": "^3.5.2",
+    "@supabase/supabase-js": "^2.49.4"
   }
 }

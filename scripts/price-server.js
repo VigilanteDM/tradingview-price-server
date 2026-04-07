@@ -1,14 +1,18 @@
 const http = require('http');
 const TradingView = require('@mathieuc/tradingview');
+const { createClient } = require('@supabase/supabase-js');
 
 const PORT = process.env.PORT || 3456;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
-/**
- * Simple HTTP server that fetches ETF prices from TradingView
- *
- * Usage: GET /?symbol=LSE:ISPY
- * Returns: { symbol, price, timestamp }
- */
+let supabase;
+if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
+  supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  console.log('Supabase connected');
+} else {
+  console.warn('SUPABASE_URL or SUPABASE_SERVICE_KEY not set — /update-prices disabled');
+}
 
 async function getPrice(symbol) {
   return new Promise((resolve, reject) => {
@@ -44,12 +48,68 @@ async function getPrice(symbol) {
   });
 }
 
+async function updateAllPrices() {
+  if (!supabase) throw new Error('Supabase not configured');
+
+  const { data: etfs, error } = await supabase
+    .from('etfs')
+    .select('id, ticker, exchange');
+
+  if (error) throw new Error(`Failed to fetch ETFs: ${error.message}`);
+  if (!etfs.length) return { updated: 0, errors: [] };
+
+  const results = { updated: 0, errors: [] };
+
+  for (const etf of etfs) {
+    const tvSymbol = `${etf.exchange}:${etf.ticker}`;
+    try {
+      const priceData = await getPrice(tvSymbol);
+      const { error: updateError } = await supabase
+        .from('etfs')
+        .update({
+          current_price: priceData.price,
+          price_updated_at: priceData.timestamp
+        })
+        .eq('id', etf.id);
+
+      if (updateError) {
+        results.errors.push({ ticker: etf.ticker, error: updateError.message });
+        console.error(`DB update failed for ${etf.ticker}: ${updateError.message}`);
+      } else {
+        results.updated++;
+        console.log(`Updated ${etf.ticker}: ${priceData.price}`);
+      }
+    } catch (err) {
+      results.errors.push({ ticker: etf.ticker, error: err.message });
+      console.error(`Price fetch failed for ${tvSymbol}: ${err.message}`);
+    }
+    await new Promise(r => setTimeout(r, 500));
+  }
+
+  return results;
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
 
-  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json');
+
+  if (url.pathname === '/update-prices') {
+    if (!supabase) {
+      res.statusCode = 503;
+      res.end(JSON.stringify({ error: 'Supabase not configured' }));
+      return;
+    }
+    try {
+      const results = await updateAllPrices();
+      res.end(JSON.stringify(results));
+    } catch (err) {
+      res.statusCode = 500;
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
 
   if (url.pathname === '/price') {
     const symbol = url.searchParams.get('symbol');
@@ -71,7 +131,6 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (url.pathname === '/prices') {
-    // Fetch multiple prices
     const symbolsParam = url.searchParams.get('symbols');
 
     if (!symbolsParam) {
@@ -92,7 +151,6 @@ const server = http.createServer(async (req, res) => {
         results.push({ symbol: symbol.trim(), error: err.message });
         console.error(`Error fetching ${symbol}: ${err.message}`);
       }
-      // Small delay between requests to avoid rate limiting
       await new Promise(r => setTimeout(r, 500));
     }
 
@@ -100,9 +158,8 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Health check
   if (url.pathname === '/health') {
-    res.end(JSON.stringify({ status: 'ok' }));
+    res.end(JSON.stringify({ status: 'ok', supabase: !!supabase }));
     return;
   }
 
@@ -115,5 +172,6 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`\nEndpoints:`);
   console.log(`  GET /price?symbol=LSE:ISPY`);
   console.log(`  GET /prices?symbols=LSE:ISPY,LSE:SMGB,LSE:GSPX`);
+  console.log(`  GET /update-prices        (reads ETFs from Supabase, fetches & writes prices)`);
   console.log(`  GET /health`);
 });
